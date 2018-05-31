@@ -83,23 +83,34 @@ def detect_defects(param):
     img_counter = 0
 
     try:
-        # Create an instant camera object with the camera device found first.
-        camera = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
+        # # Create an instant camera object with the camera device found first.
+        # camera = pylon.InstantCamera(pylon.TlFactory.GetInstance().CreateFirstDevice())
+        # camera.PixelFormat = "BGR8"
+        #
+        # # Print the model name of the camera.
+        # print("Using device ", camera.GetDeviceInfo().GetModelName())
+        #
+        # # The parameter MaxNumBuffer can be used to control the count of buffers
+        # # allocated for grabbing. The default value of this parameter is 10.
+        # camera.MaxNumBuffer = 5
+        #
+        # # Start the grabbing of c_countOfImagesToGrab images.
+        # # The camera device is parameterized with a default configuration which
+        # # sets up free-running continuous acquisition.
+        # # countOfImagesToGrab = 100
+        # # camera.StartGrabbingMax(countOfImagesToGrab)
+        #
+        # camera.StartGrabbing()
 
-        # Print the model name of the camera.
-        print("Using device ", camera.GetDeviceInfo().GetModelName())
+        # Simply get the first available pylon device.
+        first_device = pylon.TlFactory.GetInstance().CreateFirstDevice()
+        camera = pylon.InstantCamera(first_device)
+        camera.Open()
 
-        # The parameter MaxNumBuffer can be used to control the count of buffers
-        # allocated for grabbing. The default value of this parameter is 10.
-        camera.MaxNumBuffer = 5
+        # Optional if you set it in Pylon Viewer
+        camera.PixelFormat = 'RGB8'
 
-        # Start the grabbing of c_countOfImagesToGrab images.
-        # The camera device is parameterized with a default configuration which
-        # sets up free-running continuous acquisition.
-        # countOfImagesToGrab = 100
-        # camera.StartGrabbingMax(countOfImagesToGrab)
-
-        camera.StartGrabbing()
+        camera.StartGrabbing(pylon.GrabStrategy_LatestImages)
 
         # Camera.StopGrabbing() is called automatically by the RetrieveResult() method
         # when c_countOfImagesToGrab images have been retrieved.
@@ -129,6 +140,7 @@ def detect_defects(param):
                             cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
                         # Save image
                         cv2.imwrite(os.path.join(param['path2save'], str(img_counter).zfill(4) + param['img_ext']), img)
+                        # plt.imsave(os.path.join(param['path2save'], str(img_counter).zfill(4) + param['img_ext']), img)
                         img_counter += 1
             else:
                 print("Error: ", grabResult.ErrorCode, grabResult.ErrorDescription)
@@ -145,7 +157,7 @@ def detect_defects(param):
 if __name__ == '__main__':
     param = {'path2save': '/home/deepeye/Desktop',
              'img_ext': '.png',
-             'draw_bbox': True}
+             'draw_bbox': False}
 
     detect_defects(param)
 
