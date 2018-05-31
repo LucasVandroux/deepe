@@ -15,7 +15,8 @@ def simplifyImg(frame, width_size = 500.0):
     frame_resized = cv2.resize(frame, dim, interpolation = cv2.INTER_AREA)
 
     # Convert it to grayscale, and blur it
-    gray = cv2.cvtColor(frame_resized, cv2.COLOR_BGR2GRAY)
+    # gray = cv2.cvtColor(frame_resized, cv2.COLOR_BGR2GRAY)
+    gray = frame_resized
     gray = cv2.GaussianBlur(gray, (21, 21), 0)
 
     return gray, r
@@ -49,31 +50,36 @@ def singleMovDetect(img, simple_img_ref, min_area = 500):
         bboxes.append(cv2.boundingRect(c))
 
     # Merge the bboxes incase
-    if len(bboxes) > 1:
-        dim_array = np.zeros((len(bboxes), 4))
+    if len(bboxes) > 0:
+        if len(bboxes) > 1:
+            dim_array = np.zeros((len(bboxes), 4))
 
-        for i, bbox in enumerate(bboxes):
-            (x, y, w, h) = bbox
-            dim_array[i, :] = np.array((x, y, (x + w), (y + h)))
+            for i, bbox in enumerate(bboxes):
+                (x, y, w, h) = bbox
+                dim_array[i, :] = np.array((x, y, (x + w), (y + h)))
 
-        bbox = (np.min(dim_array[:,0]),
-                np.min(dim_array[:,1]),
-                np.max(dim_array[:,2]) - np.min(dim_array[:,0]),
-                np.max(dim_array[:,3]) - np.min(dim_array[:,1]))
+            bbox = (np.min(dim_array[:,0]),
+                    np.min(dim_array[:,1]),
+                    np.max(dim_array[:,2]) - np.min(dim_array[:,0]),
+                    np.max(dim_array[:,3]) - np.min(dim_array[:,1]))
+
+        else:
+            bbox = bboxes[0]
+
+        # Scale up the bbox
+        bbox = [int(dim / ratio) for dim in bbox]
 
     else:
-        bbox = bboxes[0]
-
-    # Scale up the bbox
-    bbox = [int(dim / ratio) for dim in bbox]
+        bbox = []
 
     # Scale up the mask
-    mask = cv2.resize(frame, dim, interpolation = cv2.INTER_AREA)
+    mask = cv2.resize(thresh, dim, interpolation = cv2.INTER_AREA)
 
-    return bbox, thresh
+    return bbox, mask
 
 def detect_defects(param):
     img_ref = None
+    found_img_ref = False
     img_counter = 0
 
     try:
@@ -104,24 +110,26 @@ def detect_defects(param):
             # Image grabbed successfully?
             if grabResult.GrabSucceeded():
                 # Access the image data.
-                print("SizeX: ", grabResult.Width)
-                print("SizeY: ", grabResult.Height)
-                img = grabResult.Array
-                print("Gray value of first pixel: ", img[0, 0])
+                # print("SizeX: ", grabResult.Width)
+                # print("SizeY: ", grabResult.Height)
+                # print("Gray value of first pixel: ", img[0, 0])
 
-                if not img_ref:
+                img = grabResult.Array
+
+                if not found_img_ref:
                     img_ref, _ = simplifyImg(img)
+                    found_img_ref = True
                 else:
                     bbox, mask = singleMovDetect(img, img_ref)
 
                     if bbox:
                         # Draw bbox
-                        if draw_bbox:
+                        if param['draw_bbox']:
                             (x, y, w, h) = bbox
-                            cv2.rectangle(curr_frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+                            cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
                         # Save image
-                        cv2.imwrite(img, os.path.join(path2save, str(img_counter).zfill(4) + img_ext))
-
+                        cv2.imwrite(os.path.join(param['path2save'], str(img_counter).zfill(4) + param['img_ext']), img)
+                        img_counter += 1
             else:
                 print("Error: ", grabResult.ErrorCode, grabResult.ErrorDescription)
             grabResult.Release()
@@ -135,9 +143,9 @@ def detect_defects(param):
     sys.exit(exitCode)
 
 if __name__ == '__main__':
-    param = {'path2save': '',
+    param = {'path2save': '/home/deepeye/Desktop',
              'img_ext': '.png',
-             'draw_box': True}
+             'draw_bbox': True}
 
     detect_defects(param)
 
