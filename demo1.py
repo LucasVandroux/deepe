@@ -15,8 +15,8 @@ def simplifyImg(frame, width_size = 500.0):
     frame_resized = cv2.resize(frame, dim, interpolation = cv2.INTER_AREA)
 
     # Convert it to grayscale, and blur it
-    # gray = cv2.cvtColor(frame_resized, cv2.COLOR_BGR2GRAY)
-    gray = frame_resized
+    gray = cv2.cvtColor(frame_resized, cv2.COLOR_BGR2GRAY)
+    # gray = frame_resized
     gray = cv2.GaussianBlur(gray, (21, 21), 0)
 
     return gray, r
@@ -108,7 +108,7 @@ def detect_defects(param):
         camera.Open()
 
         # Optional if you set it in Pylon Viewer
-        camera.PixelFormat = 'RGB8'
+        camera.PixelFormat = 'BayerRG8'
 
         camera.StartGrabbing(pylon.GrabStrategy_LatestImages)
 
@@ -125,7 +125,8 @@ def detect_defects(param):
                 # print("SizeY: ", grabResult.Height)
                 # print("Gray value of first pixel: ", img[0, 0])
 
-                img = grabResult.Array
+                #img = grabResult.Array
+                img = cv2.cvtColor(grabResult.Array, cv2.COLOR_BAYER_RG2RGB)
 
                 if not found_img_ref:
                     img_ref, _ = simplifyImg(img)
